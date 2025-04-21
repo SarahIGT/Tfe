@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Enquête Trajet Piétonnier ULiège</title>
+<style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px 15px;
+            width: 100%;
+        }
+        header {
+            background-color: #00579f; /* Couleur ULiège */
+            color: white;
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .content {
+            background-color: white;
+            border-radius: 0 0 8px 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            margin: 0;
+            font-size: 1.6rem;
+        }
+        h2 {
+            font-size: 1.2rem;
+            color: #00579f;
+        }
+        .section {
+            display: none;
+            margin-bottom: 20px;
+        }
+        .active {
+            display: block;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        textarea {
+            height: 100px;
+        }
+        .radio-group {
+            margin: 10px 0;
+        }
+        .radio-group label {
+            font-weight: normal;
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+        .radio-group input {
+            width: auto;
+            margin-right: 10px;
+        }
+        .likert-scale {
+            display: flex;
+            flex-direction: column;
+            margin: 10px 0;
+        }
+        .likert-option {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+        .likert-option input {
+            width: auto;
+            margin-right: 10px;
+        }
+        .likert-option label {
+            font-weight: normal;
+            margin-bottom: 0;
+        }
+        button {
+            background-color: #00579f;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #003e72;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        #map {
+            height: 200px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+        .progress-bar {
+            width: 100%;
+            background-color: #ddd;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .progress {
+            height: 10px;
+            background-color: #00579f;
+            border-radius: 10px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .alert {
+            padding: 15px;
+            background-color: #f8d7da;
+            color: #721c24;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        .success-alert {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .info-alert {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+        #locationStatus {
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            color: #666;
+        }
+        .question-number {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        /* Styles responsifs */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            .content {
+                padding: 15px;
+            }
+            h1 {
+                font-size: 1.4rem;
+            }
+            h2 {
+                font-size: 1.1rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .content {
+                padding: 10px;
+            }
+            h1 {
+                font-size: 1.2rem;
+            }
+            button {
+                padding: 10px 15px;
+            }
+        }
+        
+        /* Style pour le modal de géolocalisation */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        
+        .modal-buttons button {
+            width: 48%;
+        }
+    </style>
+</head>
+<body>
+<script>let userPath = [];
+
+
+document.addEventListener('DOMContentLoaded', () => {
+// Coordonnées GPS des points clés (WGS84)
+const checkpoints = [
+    {lat: 50.578101, lon: 5.537262, section: 'segment1Section'}, // Fin Segment 1
+    {lat: 50.577379, lon: 5.535333, section: 'segment2Section'}, // Fin Segment 2
+    {lat: 50.576313, lon: 5.532160, section: 'segment3Section'}, // Fin Segment 3
+];
+
+let currentCheckpoint = 0;
+
+function showSection(id) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+
+function updateProgressBar(percent) {
+    document.getElementById('progressBar').style.width = percent + '%';
+}
+
+function haversineDistance(lat1, lon1, lat2, lon2) {
+    const toRad = x => x * Math.PI / 180;
+    const R = 6371e3; // Earth radius in meters
+    const φ1 = toRad(lat1), φ2 = toRad(lat2);
+    const Δφ = toRad(lat2 - lat1);
+    const Δλ = toRad(lon2 - lon1);
+    const a = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
+function checkPosition(pos) {
+    const { latitude, longitude } = pos.coords;
+    userPath.push({lat: latitude, lon: longitude, time: Date.now()});
+    document.getElementById('locationStatus').textContent = `Position actuelle : lat ${latitude.toFixed(5)}, lon ${longitude.toFixed(5)}`;
+
+    if (currentCheckpoint < checkpoints.length) {
+        const cp = checkpoints[currentCheckpoint];
+        const dist = haversineDistance(latitude, longitude, cp.lat, cp.lon);
+
+        if (dist < 50000) { // Rayon de déclenchement (en mètres)
+            showSection(cp.section);
+            updateProgressBar(((currentCheckpoint + 1) / (checkpoints.length + 2)) * 100);
+            currentCheckpoint++;
+        }
+    }
+}
+
+function startGeolocation() {
+    if (!navigator.geolocation) {
+        alert('Géolocalisation non supportée');
+        return;
+    }
+
+    document.getElementById('geoModal').style.display = 'none';
+    navigator.geolocation.watchPosition(checkPosition, err => {
+        document.getElementById('locationAlert').style.display = 'block';
+        console.error('Erreur de géolocalisation', err);
+    }, {
+        enableHighAccuracy: true,
+        maximumAge: 1000,
+        timeout: 10000
+    });
+}
+
+// Gestion des boutons
+
+document.getElementById('requestPermission').addEventListener('click', () => {
+    document.getElementById('geoModal').style.display = 'block';
+});
+
+document.getElementById('geoModalContinue').addEventListener('click', () => {
+    showSection('initialSection');
+    updateProgressBar(10);
+    startGeolocation();
+});
+
+document.getElementById('geoModalCancel').addEventListener('click', () => {
+    document.getElementById('geoModal').style.display = 'none';
+    document.getElementById('locationAlert').style.display = 'block';
+});
+
+document.getElementById('startSurvey').addEventListener('click', () => {
+    document.getElementById('geoModal').style.display = 'block';
+});
+
+document.getElementById('segment1Submit').addEventListener('click', () => {
+    showSection('permissionSection'); // Attendre position suivante
+});
+
+document.getElementById('segment2Submit').addEventListener('click', () => {
+    showSection('permissionSection');
+});
+
+document.getElementById('segment3Submit').addEventListener('click', () => {
+    showSection('finalSection');
+    updateProgressBar(100);
+});
+
+document.getElementById('submitSurvey').addEventListener('click', () => {
+    const data = {
+        age: document.getElementById('age').value,
+        gender: document.querySelector('input[name="gender"]:checked')?.value || '',
+        status: document.querySelector('input[name="status"]:checked')?.value || '',
+        destination: document.getElementById('destination').value,
+        segment1: document.getElementById('segment1Questions').innerText,
+        segment2: document.getElementById('segment2Questions').innerText,
+        segment3: document.getElementById('segment3Questions').innerText,
+        mostConvivial: document.getElementById('mostConvivial').value,
+        mediumConvivial: document.getElementById('mediumConvivial').value,
+        leastConvivial: document.getElementById('leastConvivial').value,
+        improvements: document.getElementById('improvements').value,
+        path: userPath
+    };
+
+    fetch('https://script.google.com/macros/s/TON_URL_DEPLOIEMENT/exec', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(res => res.json())
+    .then(response => {
+        if (response.result === 'success') {
+            document.getElementById('successMessage').style.display = 'block';
+        } else {
+            alert('Erreur lors de l\'envoi');
+        }
+    })
+    .catch(err => {
+        console.error('Erreur:', err);
+        alert('Erreur réseau');
+    });
+});
+});
+</script>
+<div class="container">
+<header>
+<h1>Enquête Trajet Piétonnier ULiège</h1>
+</header>
+<div class="content">
+<div class="progress-bar">
+<div class="progress" id="progressBar"></div>
+</div>
+<div class="alert" id="locationAlert">
+                Veuillez activer la géolocalisation pour continuer l'enquête.
+            </div>
+<div class="alert info-alert" id="infoAlert">
+                Cette enquête nécessite l'accès à votre position pour suivre votre trajet.
+            </div>
+<div class="alert success-alert" id="successMessage">
+                Vos réponses ont été enregistrées avec succès. Merci de votre participation !
+            </div>
+<p id="locationStatus"></p>
+<!-- Section permission géolocalisation -->
+<section class="section active" id="permissionSection">
+<h2>Autorisation de géolocalisation</h2>
+<p>Cette enquête nécessite l'accès à votre position pour suivre votre trajet piétonnier et recueillir vos impressions aux points de passage spécifiques.</p>
+<p>Aucune donnée personnelle ne sera conservée. Votre position est uniquement utilisée pour l'enquête.</p>
+<button id="requestPermission">Autoriser la géolocalisation</button>
+</section>
+<!-- Section Initiale -->
+<section class="section" id="initialSection">
+<h2>Informations générales</h2>
+<div class="form-group">
+<label for="age">Âge</label>
+<input id="age" max="100" min="18" required="" type="number"/>
+</div>
+<div class="form-group">
+<label>Sexe</label>
+<div class="radio-group">
+<label><input name="gender" required="" type="radio" value="Femme"/> Femme</label>
+<label><input name="gender" type="radio" value="Homme"/> Homme</label>
+<label><input name="gender" type="radio" value="Autre"/> Autre</label>
+</div>
+</div>
+<div class="form-group">
+<label>Vous êtes</label>
+<div class="radio-group">
+<label><input name="status" required="" type="radio" value="Étudiant·e"/> Étudiant·e</label>
+<label><input name="status" type="radio" value="Enseignant·e/chercheur·e"/> Enseignant·e/chercheur·e</label>
+<label><input name="status" type="radio" value="Personnel administratif"/> Personnel administratif</label>
+<label><input name="status" type="radio" value="Visiteur·euse"/> Visiteur·euse</label>
+</div>
+</div>
+<div class="form-group">
+<label for="destination">Votre destination ?</label>
+<input id="destination" required="" type="text"/>
+</div>
+<button id="startSurvey">Commencer l'enquête</button>
+</section>
+<!-- Section Segment 1 -->
+<section class="section" id="segment1Section">
+<h2>Segment 1</h2>
+<p>Veuillez évaluer ce segment du trajet que vous venez de parcourir.</p>
+<div id="segment1Questions"><div><div class="form-group"><label>1. Je me sens en sécurité sur ce segment (circulation maîtrisée, éclairage suffisant, absence de criminalité).</label><div class="likert-scale"><div class="likert-option"><input name="segment1Questions_q1" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment1Questions_q1" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment1Questions_q1" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment1Questions_q1" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment1Questions_q1" required="True" type="radio" value="5"/><label>5</label></div></div></div><div class="form-group"><label>2. L’ambiance sonore et thermique est agréable, et je peux facilement faire une pause si je le souhaite.</label><div class="likert-scale"><div class="likert-option"><input name="segment1Questions_q2" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment1Questions_q2" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment1Questions_q2" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment1Questions_q2" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment1Questions_q2" required="True" type="radio" value="5"/><label>5</label></div></div></div><div class="form-group"><label>3. Le parcours est fluide et lisible ; aucun obstacle ne gêne ma progression.</label><div class="likert-scale"><div class="likert-option"><input name="segment1Questions_q3" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment1Questions_q3" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment1Questions_q3" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment1Questions_q3" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment1Questions_q3" required="True" type="radio" value="5"/><label>5</label></div></div></div><div class="form-group"><label>4. Il y a assez de sièges de bonne qualité pour me reposer ou observer le lieu.</label><div class="likert-scale"><div class="likert-option"><input name="segment1Questions_q4" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment1Questions_q4" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment1Questions_q4" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment1Questions_q4" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment1Questions_q4" required="True" type="radio" value="5"/><label>5</label></div></div></div><div class="form-group"><label>5. Le segment est propre et attrayant (végétation, éléments paysagers ou artistiques).</label><div class="likert-scale"><div class="likert-option"><input name="segment1Questions_q5" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment1Questions_q5" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment1Questions_q5" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment1Questions_q5" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment1Questions_q5" required="True" type="radio" value="5"/><label>5</label></div></div></div><div class="form-group"><label>6. Le trottoir/chemin est suffisamment large, bien revêtu, sans pente excessive ni trafic motorisé gênant.</label><div class="likert-scale"><div class="likert-option"><input name="segment1Questions_q6" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment1Questions_q6" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment1Questions_q6" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment1Questions_q6" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment1Questions_q6" required="True" type="radio" value="5"/><label>5</label></div></div></div><div class="form-group"><label>7. La présence et l’aménagement des lieux favorisent des échanges agréables avec d’autres usagers.</label><div class="likert-scale"><div class="likert-option"><input name="segment1Questions_q7" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment1Questions_q7" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment1Questions_q7" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment1Questions_q7" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment1Questions_q7" required="True" type="radio" value="5"/><label>5</label></div></div></div><div class="form-group"><label>8. Le niveau de bruit (trafic, machines, foule, etc.) est faible et ne me dérange pas.</label><div class="likert-scale"><div class="likert-option"><input name="segment1Questions_q8" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment1Questions_q8" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment1Questions_q8" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment1Questions_q8" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment1Questions_q8" required="True" type="radio" value="5"/><label>5</label></div></div></div><div class="form-group"><label>9. Le segment est exempt de pollution visuelle (publicité envahissante, déchets, câbles, etc.).</label><div class="likert-scale"><div class="likert-option"><input name="segment1Questions_q9" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment1Questions_q9" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment1Questions_q9" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment1Questions_q9" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment1Questions_q9" required="True" type="radio" value="5"/><label>5</label></div></div></div><div class="form-group"><label>10. L’air est propre et aucune odeur ou fumée désagréable n’est perceptible.</label><div class="likert-scale"><div class="likert-option"><input name="segment1Questions_q10" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment1Questions_q10" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment1Questions_q10" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment1Questions_q10" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment1Questions_q10" required="True" type="radio" value="5"/><label>5</label></div></div></div></div></div>
+<button id="segment1Submit">Continuer</button>
+</section>
+<!-- Section Segment 2 -->
+<section class="section" id="segment2Section">
+<h2>Segment 2</h2>
+<p>Veuillez évaluer ce segment du trajet que vous venez de parcourir.</p>
+<div id="segment2Questions"><div><div class="form-group"><label>1. Je me sens en sécurité sur ce segment (circulation maîtrisée, éclairage suffisant, absence de criminalité).</label><div class="likert-scale"><div class="likert-option"><input name="segment2Questions_q1" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment2Questions_q1" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment2Questions_q1" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment2Questions_q1" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment2Questions_q1" required="True" type="radio" value="5"/><label>5</label></div></div></div><div class="form-group"><label>2. L’ambiance sonore et thermique est agréable, et je peux facilement faire une pause si je le souhaite.</label><div class="likert-scale"><div class="likert-option"><input name="segment2Questions_q2" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment2Questions_q2" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment2Questions_q2" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment2Questions_q2" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment2Questions_q2" required="True" type="radio" value="5"/><label>5</label></div></div></div><div class="form-group"><label>3. Le parcours est fluide et lisible ; aucun obstacle ne gêne ma progression.</label><div class="likert-scale"><div class="likert-option"><input name="segment2Questions_q3" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment2Questions_q3" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment2Questions_q3" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment2Questions_q3" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment2Questions_q3" required="True" type="radio" value="5"/><label>5</label></div></div></div><div class="form-group"><label>4. Il y a assez de sièges de bonne qualité pour me reposer ou observer le lieu.</label><div class="likert-scale"><div class="likert-option"><input name="segment2Questions_q4" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment2Questions_q4" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment2Questions_q4" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment2Questions_q4" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment2Questions_q4" required="True" type="radio" value="5"/><label>5</label></div></div></div><div class="form-group"><label>5. Le segment est propre et attrayant (végétation, éléments paysagers ou artistiques).</label><div class="likert-scale"><div class="likert-option"><input name="segment2Questions_q5" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment2Questions_q5" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment2Questions_q5" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment2Questions_q5" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment2Questions_q5" required="True" type="radio" value="5"/><label>5</label></div></div></div><div class="form-group"><label>6. Le trottoir/chemin est suffisamment large, bien revêtu, sans pente excessive ni trafic motorisé gênant.</label><div class="likert-scale"><div class="likert-option"><input name="segment2Questions_q6" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment2Questions_q6" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment2Questions_q6" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment2Questions_q6" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment2Questions_q6" required="True" type="radio" value="5"/><label>5</label></div></div></div><div class="form-group"><label>7. La présence et l’aménagement des lieux favorisent des échanges agréables avec d’autres usagers.</label><div class="likert-scale"><div class="likert-option"><input name="segment2Questions_q7" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment2Questions_q7" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment2Questions_q7" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment2Questions_q7" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment2Questions_q7" required="True" type="radio" value="5"/><label>5</label></div></div></div><div class="form-group"><label>8. Le niveau de bruit (trafic, machines, foule, etc.) est faible et ne me dérange pas.</label><div class="likert-scale"><div class="likert-option"><input name="segment2Questions_q8" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment2Questions_q8" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment2Questions_q8" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment2Questions_q8" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment2Questions_q8" required="True" type="radio" value="5"/><label>5</label></div></div></div><div class="form-group"><label>9. Le segment est exempt de pollution visuelle (publicité envahissante, déchets, câbles, etc.).</label><div class="likert-scale"><div class="likert-option"><input name="segment2Questions_q9" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment2Questions_q9" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment2Questions_q9" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment2Questions_q9" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment2Questions_q9" required="True" type="radio" value="5"/><label>5</label></div></div></div><div class="form-group"><label>10. L’air est propre et aucune odeur ou fumée désagréable n’est perceptible.</label><div class="likert-scale"><div class="likert-option"><input name="segment2Questions_q10" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment2Questions_q10" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment2Questions_q10" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment2Questions_q10" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment2Questions_q10" required="True" type="radio" value="5"/><label>5</label></div></div></div></div></div>
+<button id="segment2Submit">Continuer</button>
+</section>
+<!-- Section Segment 3 -->
+<section class="section" id="segment3Section">
+<h2>Segment 3</h2>
+<p>Veuillez évaluer ce segment du trajet que vous venez de parcourir.</p>
+<div id="segment3Questions"><div><div class="form-group"><label>1. Je me sens en sécurité sur ce segment (circulation maîtrisée, éclairage suffisant, absence de criminalité).</label><div class="likert-scale"><div class="likert-option"><input name="segment3Questions_q1" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment3Questions_q1" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment3Questions_q1" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment3Questions_q1" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment3Questions_q1" required="True" type="radio" value="5"/><label>5</label></div></div></div><div class="form-group"><label>2. L’ambiance sonore et thermique est agréable, et je peux facilement faire une pause si je le souhaite.</label><div class="likert-scale"><div class="likert-option"><input name="segment3Questions_q2" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment3Questions_q2" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment3Questions_q2" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment3Questions_q2" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment3Questions_q2" required="True" type="radio" value="5"/><label>5</label></div></div></div><div class="form-group"><label>3. Le parcours est fluide et lisible ; aucun obstacle ne gêne ma progression.</label><div class="likert-scale"><div class="likert-option"><input name="segment3Questions_q3" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment3Questions_q3" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment3Questions_q3" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment3Questions_q3" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment3Questions_q3" required="True" type="radio" value="5"/><label>5</label></div></div></div><div class="form-group"><label>4. Il y a assez de sièges de bonne qualité pour me reposer ou observer le lieu.</label><div class="likert-scale"><div class="likert-option"><input name="segment3Questions_q4" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment3Questions_q4" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment3Questions_q4" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment3Questions_q4" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment3Questions_q4" required="True" type="radio" value="5"/><label>5</label></div></div></div><div class="form-group"><label>5. Le segment est propre et attrayant (végétation, éléments paysagers ou artistiques).</label><div class="likert-scale"><div class="likert-option"><input name="segment3Questions_q5" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment3Questions_q5" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment3Questions_q5" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment3Questions_q5" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment3Questions_q5" required="True" type="radio" value="5"/><label>5</label></div></div></div><div class="form-group"><label>6. Le trottoir/chemin est suffisamment large, bien revêtu, sans pente excessive ni trafic motorisé gênant.</label><div class="likert-scale"><div class="likert-option"><input name="segment3Questions_q6" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment3Questions_q6" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment3Questions_q6" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment3Questions_q6" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment3Questions_q6" required="True" type="radio" value="5"/><label>5</label></div></div></div><div class="form-group"><label>7. La présence et l’aménagement des lieux favorisent des échanges agréables avec d’autres usagers.</label><div class="likert-scale"><div class="likert-option"><input name="segment3Questions_q7" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment3Questions_q7" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment3Questions_q7" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment3Questions_q7" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment3Questions_q7" required="True" type="radio" value="5"/><label>5</label></div></div></div><div class="form-group"><label>8. Le niveau de bruit (trafic, machines, foule, etc.) est faible et ne me dérange pas.</label><div class="likert-scale"><div class="likert-option"><input name="segment3Questions_q8" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment3Questions_q8" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment3Questions_q8" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment3Questions_q8" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment3Questions_q8" required="True" type="radio" value="5"/><label>5</label></div></div></div><div class="form-group"><label>9. Le segment est exempt de pollution visuelle (publicité envahissante, déchets, câbles, etc.).</label><div class="likert-scale"><div class="likert-option"><input name="segment3Questions_q9" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment3Questions_q9" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment3Questions_q9" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment3Questions_q9" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment3Questions_q9" required="True" type="radio" value="5"/><label>5</label></div></div></div><div class="form-group"><label>10. L’air est propre et aucune odeur ou fumée désagréable n’est perceptible.</label><div class="likert-scale"><div class="likert-option"><input name="segment3Questions_q10" required="True" type="radio" value="1"/><label>1</label></div><div class="likert-option"><input name="segment3Questions_q10" required="True" type="radio" value="2"/><label>2</label></div><div class="likert-option"><input name="segment3Questions_q10" required="True" type="radio" value="3"/><label>3</label></div><div class="likert-option"><input name="segment3Questions_q10" required="True" type="radio" value="4"/><label>4</label></div><div class="likert-option"><input name="segment3Questions_q10" required="True" type="radio" value="5"/><label>5</label></div></div></div></div></div>
+<button id="segment3Submit">Continuer</button>
+</section>
+<!-- Section Finale -->
+<section class="section" id="finalSection">
+<h2>Évaluation finale</h2>
+<div class="form-group">
+<label>Classez les segments du plus convivial au moins convivial</label>
+<div class="form-group">
+<label for="mostConvivial">1. Plus convivial</label>
+<select id="mostConvivial" required="">
+<option value="">-- Sélectionnez --</option>
+<option value="Segment 1">Segment 1</option>
+<option value="Segment 2">Segment 2</option>
+<option value="Segment 3">Segment 3</option>
+</select>
+</div>
+<div class="form-group">
+<label for="mediumConvivial">2. Moyennement convivial</label>
+<select id="mediumConvivial" required="">
+<option value="">-- Sélectionnez --</option>
+<option value="Segment 1">Segment 1</option>
+<option value="Segment 2">Segment 2</option>
+<option value="Segment 3">Segment 3</option>
+</select>
+</div>
+<div class="form-group">
+<label for="leastConvivial">3. Moins convivial</label>
+<select id="leastConvivial" required="">
+<option value="">-- Sélectionnez --</option>
+<option value="Segment 1">Segment 1</option>
+<option value="Segment 2">Segment 2</option>
+<option value="Segment 3">Segment 3</option>
+</select>
+</div>
+</div>
+<div class="form-group">
+<label for="improvements">Des remarques pour améliorer la convivialité et la qualité environnementale du parcours</label>
+<textarea id="improvements"></textarea>
+</div>
+<button id="submitSurvey">Soumettre l'enquête</button>
+</section>
+</div>
+</div>
+<!-- Modal pour la géolocalisation -->
+<div class="modal" id="geoModal">
+<div class="modal-content">
+<h2>Géolocalisation requise</h2>
+<p>Cette enquête nécessite l'accès à votre position pour fonctionner correctement. Merci d'autoriser la géolocalisation lorsque votre navigateur le demande.</p>
+<div class="modal-buttons">
+<button id="geoModalCancel">Annuler</button>
+<button id="geoModalContinue">Continuer</button>
+</div>
+</div>
+</div>
+</body></html>
